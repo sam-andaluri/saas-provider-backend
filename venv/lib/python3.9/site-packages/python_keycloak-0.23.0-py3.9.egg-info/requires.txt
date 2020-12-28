@@ -1,0 +1,2 @@
+requests>=2.20.0
+python-jose>=1.4.0
