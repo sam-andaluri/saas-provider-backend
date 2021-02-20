@@ -19,11 +19,11 @@ spec:
         image: 427398298435.dkr.ecr.us-east-2.amazonaws.com/saas-provider-backend:latest
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "1000m"
+            memory: "256Mi"
+            cpu: "250m"
           limits:
-            memory: "1024Mi"
-            cpu: "2000m"
+            memory: "512Mi"
+            cpu: "500m"
         env:
         - name: GITHUB_TOKEN
           valueFrom:
@@ -40,6 +40,16 @@ spec:
             secretKeyRef:
               name: provider
               key: GITHUB_TEMPLATED_REPO
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: provider
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: provider
+              key: AWS_SECRET_ACCESS_KEY
         volumeMounts:
           - name: api-data
             mountPath: /data
