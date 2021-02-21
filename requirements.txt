@@ -1,7 +1,8 @@
+pydng==1.1.2
 pydantic==1.7.3
+requests~=2.25.1
+Flask==1.1.2
 PyGithub==1.54.1
-requests==2.25.1
-pydng~=1.1.2
 tinydb~=4.3.0
-Flask~=1.1.2
-waitress~=1.4.4
+waitress==1.4.4
+PyNaCl==1.4.0

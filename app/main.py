@@ -11,7 +11,7 @@ import pydng
 import requests
 from flask import Flask
 from github import Github
-import nacl
+import nacl.utils
 from pydantic import BaseModel
 from tinydb import TinyDB, where
 
@@ -31,7 +31,10 @@ class Tenant(BaseModel):
 app = Flask(__name__)
 
 # Local db
+# Uncomment for testing
+# db = TinyDB('./tenant-db.json')
 db = TinyDB('/data/tenant-db.json')
+
 tenants = db.table('tenants')
 
 # Load from kubernetes sealed secrets
