@@ -1,21 +1,21 @@
 import json
+import logging
 import os
+from sys import stdout
 from base64 import b64encode
 from datetime import datetime
-from pprint import pprint
 from string import Template
 from typing import Optional
 
 import pydng
 import requests
-from fastapi import FastAPI
-from nacl import encoding, public
+from flask import Flask
+from github import Github
+import nacl
 from pydantic import BaseModel
 from tinydb import TinyDB, where
-from github import Github
-import logging
-import sys
-logging.basicConfig(stream=sys.stdout, format=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s') )
+
+logging.basicConfig(stream=stdout, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Tenant object received from provider UI
 class Tenant(BaseModel):
@@ -28,7 +28,7 @@ class Tenant(BaseModel):
     created_time: Optional[datetime] = None
 
 # API
-app = FastAPI()
+app = Flask(__name__)
 
 # Local db
 db = TinyDB('/data/tenant-db.json')
@@ -54,8 +54,8 @@ def gh_get_publickey(owner, repo, token):
 
 # Encrypt github secrets
 def encrypt(public_key: str, secret_value: str) -> str:
-    public_key = public.PublicKey(public_key.encode("utf-8"), encoding.Base64Encoder())
-    sealed_box = public.SealedBox(public_key)
+    public_key = nacl.public.PublicKey(public_key.encode("utf-8"), nacl.encoding.Base64Encoder())
+    sealed_box = nacl.public.SealedBox(public_key)
     encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
     return b64encode(encrypted).decode("utf-8")
 
@@ -79,12 +79,12 @@ def gh_add_secret(owner, repo, token, secret_name, secret_value):
     logging.debug(r)
 
 # Test url for testing front-end integration
-@app.get("/ping")
+@app.route("/ping")
 async def get_pong():
     return json.dumps({"status":"success", "time": str(datetime.now())})
 
 # API for creating a tenant
-@app.post("/tenant/")
+@app.route("/tenant/", methods=["POST"])
 async def create_tenant(tenant: Tenant):
     logging.debug("create_tenant enter " + json.dumps(tenant))
     if tenant.namespace == None:
@@ -128,10 +128,6 @@ async def create_tenant(tenant: Tenant):
     tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding deployment", gh_action_file)
     tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
 
-    # Create an ArgoCD app
-
-    # Sync ArgoCD app
-
     # Save tenant info
     logging.debug("create_tenant save_tenant")
     results = tenants.search(where("email")==tenant.email)
@@ -142,3 +138,7 @@ async def create_tenant(tenant: Tenant):
     else:
         tenant = results[0]
     return tenant
+
+if __name__ == "__main__":
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)

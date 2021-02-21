@@ -28,27 +28,27 @@ spec:
         - name: GITHUB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: provider
+              name: provider-backend
               key: GITHUB_TOKEN
         - name: GITHUB_USER
           valueFrom:
             secretKeyRef:
-              name: provider
+              name: provider-backend
               key: GITHUB_USER
         - name: GITHUB_TEMPLATED_REPO
           valueFrom:
             secretKeyRef:
-              name: provider
+              name: provider-backend
               key: GITHUB_TEMPLATED_REPO
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
             secretKeyRef:
-              name: provider
+              name: provider-backend
               key: AWS_ACCESS_KEY_ID
         - name: AWS_SECRET_ACCESS_KEY
           valueFrom:
             secretKeyRef:
-              name: provider
+              name: provider-backend
               key: AWS_SECRET_ACCESS_KEY
         volumeMounts:
           - name: api-data
