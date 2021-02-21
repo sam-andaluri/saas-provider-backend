@@ -54,7 +54,7 @@ spec:
           - name: api-data
             mountPath: /data
         ports:
-          - containerPort: 80
+          - containerPort: 8080
       volumes:
       - name: api-data
         persistentVolumeClaim:

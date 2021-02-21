@@ -1,19 +1,19 @@
 import json
 import logging
 import os
-from sys import stdout
-from base64 import b64encode
-from datetime import datetime
-from string import Template
-from typing import Optional
-
 import pydng
 import requests
-from flask import Flask
-from github import Github
 import nacl.utils
+import datetime
+
+from sys import stdout
+from base64 import b64encode
+from string import Template
+from github import Github
 from pydantic import BaseModel
 from tinydb import TinyDB, where
+from typing import Optional
+from fastapi import FastAPI
 
 logging.basicConfig(stream=stdout, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
@@ -25,14 +25,14 @@ class Tenant(BaseModel):
     namespace: Optional[str] = None
     cloud_provider: Optional[str] = None
     tenant_url: Optional[str] = None
-    created_time: Optional[datetime] = None
+    created_time: Optional[datetime.datetime] = None
 
 # API
-app = Flask(__name__)
+app = FastAPI()
 
 # Local db
 # Uncomment for testing
-# db = TinyDB('./tenant-db.json')
+#db = TinyDB('./tenant-db.json')
 db = TinyDB('/data/tenant-db.json')
 
 tenants = db.table('tenants')
@@ -82,18 +82,18 @@ def gh_add_secret(owner, repo, token, secret_name, secret_value):
     logging.debug(r)
 
 # Test url for testing front-end integration
-@app.route("/ping")
+@app.get("/ping")
 async def get_pong():
-    return json.dumps({"status":"success", "time": str(datetime.now())})
+    return json.dumps({"status":"success", "time": str(datetime.datetime.now())})
 
 # API for creating a tenant
-@app.route("/tenant/", methods=["POST"])
+@app.post("/tenant")
 async def create_tenant(tenant: Tenant):
     logging.debug("create_tenant enter " + json.dumps(tenant))
     if tenant.namespace == None:
         tenant.namespace = pydng.generate_name()
     if tenant.created_time == None:
-        tenant.created_time = datetime.now()
+        tenant.created_time = datetime.datetime.now()
     if tenant.cloud_provider == None:
         tenant.cloud_provider = "AWS"
 
@@ -141,7 +141,3 @@ async def create_tenant(tenant: Tenant):
     else:
         tenant = results[0]
     return tenant
-
-if __name__ == "__main__":
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=8080)
