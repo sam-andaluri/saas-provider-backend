@@ -55,6 +55,19 @@ spec:
             mountPath: /data
         ports:
           - containerPort: 8080
+            hostPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
       volumes:
       - name: api-data
         persistentVolumeClaim:
