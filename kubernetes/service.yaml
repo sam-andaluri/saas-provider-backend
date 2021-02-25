@@ -8,7 +8,7 @@ metadata:
    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-2:427398298435:certificate/d549015f-a332-4644-99c7-642c1a244491
    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http, https"
    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
-   #external-dns.alpha.kubernetes.io/hostname: tenant-api.saas-provider.cloud
+   external-dns.alpha.kubernetes.io/hostname: tenant-api.saas-provider.cloud.
 spec:
   ports:
     - name: http
