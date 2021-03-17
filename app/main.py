@@ -1,24 +1,113 @@
+import datetime
 import json
 import logging
 import os
-import time
-
-import pydng
-import requests
-import nacl.utils
-import datetime
-import uvicorn
-
-from sys import stdout
 from base64 import b64encode
 from string import Template
+from sys import stdout
+from typing import Optional
+from six.moves.urllib.request import urlopen
+from jose import jwt
+
+import nacl.utils
+import pydng
+import requests
+import uvicorn
+from fastapi import FastAPI, status, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from github import Github
+from nacl.public import PublicKey
 from pydantic import BaseModel
 from tinydb import TinyDB, where
-from typing import Optional
-from fastapi import FastAPI, status
-from nacl.public import PublicKey, SealedBox
-from fastapi.responses import JSONResponse
+
+# API
+app = FastAPI()
+
+origins = [
+    "https://saas-provider.us.auth0.com",
+    "https://saas-provider.cloud"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Auth0
+AUTH0_DOMAIN = 'saas-provider.us.auth0.com'
+API_AUDIENCE = "https://tenant-api.saas-provider.cloud/"
+ALGORITHMS = ["RS256"]
+
+# Get token
+def get_token_auth_header(request):
+
+    auth = request.headers.get("Authorization", None)
+    if not auth:
+        raise HTTPException(status_code=401, detail="Authorization header is expected")
+
+    parts = auth.split()
+
+    if parts[0].lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Authorization header must start with Bearer")
+    elif len(parts) == 1:
+        raise HTTPException(status_code=401, detail="invalid_header. Token not found")
+    elif len(parts) > 2:
+        raise HTTPException(status_code=401, detail="Authorization header must be bearer token")
+
+    token = parts[1]
+    return token
+
+# Validate token
+def validate_token_and_scopes(request, required_scope):
+    isValid = False
+    token = get_token_auth_header(request)
+    jsonurl = urlopen("https://"+AUTH0_DOMAIN+"/.well-known/jwks.json")
+    jwks = json.loads(jsonurl.read())
+    unverified_header = jwt.get_unverified_header(token)
+    unverified_claims = jwt.get_unverified_claims(token)
+    if unverified_claims.get("scope"):
+            token_scopes = unverified_claims["scope"].split()
+            logging.debug("Token scopes " + str(token_scopes))
+            for token_scope in token_scopes:
+                if token_scope == required_scope:
+                    isValid = True
+    rsa_key = {}
+    for key in jwks["keys"]:
+        if key["kid"] == unverified_header["kid"]:
+            rsa_key = {
+                "kty": key["kty"],
+                "kid": key["kid"],
+                "use": key["use"],
+                "n": key["n"],
+                "e": key["e"]
+            }
+    if rsa_key:
+        try:
+            payload = jwt.decode(
+                token,
+                rsa_key,
+                algorithms=ALGORITHMS,
+                audience=API_AUDIENCE,
+                issuer="https://"+AUTH0_DOMAIN+"/"
+            )
+            logging.debug("Decoded Payload " + str(payload))
+            if payload != None:
+                isValid = True
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="token expired")
+        except jwt.JWTClaimsError:
+            raise HTTPException(status_code=401, detail="please check the audience and issuer")
+        except Exception:
+            raise HTTPException(status_code=401, detail="Unable to parse authentication")
+    else:
+        raise HTTPException(status_code=401, detail="Unable to find appropriate key")
+
+    return isValid
+
 
 logging.basicConfig(stream=stdout, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
@@ -32,13 +121,7 @@ class Tenant(BaseModel):
     tenant_url: Optional[str] = None
     created_time: Optional[datetime.datetime] = None
 
-# API
-app = FastAPI()
-
-# Local db
-# Uncomment for testing
-db = TinyDB('./tenant-db.json')
-#db = TinyDB('/data/tenant-db.json')
+db = TinyDB('/data/tenant-db.json')
 
 tenants = db.table('tenants')
 
@@ -117,10 +200,11 @@ def gh_add_secret(owner, repo, token, secret_name, secret_value):
     r = requests.put(query_url, headers=headers, data=json.dumps(params))
     return r.status_code
 
+
 # Test url for testing front-end integration
 @app.get("/ping")
 async def get_pong():
-    return JSONResponse(status_code=status.HTTP_200_OK)
+    return JSONResponse(status_code=status.HTTP_200_OK, content={"status" : "OK"})
 
 # For testing
 @app.post("/delete/{repo}")
@@ -130,7 +214,17 @@ async def delete_repo(repo):
 
 # API for creating a tenant
 @app.post("/tenant")
-async def create_tenant(tenant: Tenant):
+async def create_tenant(tenant: Tenant, request: Request):
+    # User must have write:tenant scope to create tenants
+    if validate_token_and_scopes(request, "write:tenant") == False:
+        raise HTTPException(status_code=401, detail="token and scope validation failed. user is not permitted for this action")
+    # Check if tenant exists to prevent accidental creation
+    results = tenants.search(where("email") == tenant.email)
+    if len(results) > 0:
+        tenant = results[0]
+        return JSONResponse(status_code=status.HTTP_201_CREATED, content=tenant)
+    # Default values not supplied.
+    # TODO Add GCP support
     logging.debug("create_tenant enter " + str(tenant))
     if tenant.namespace == None:
         tenant.namespace = pydng.generate_name()
@@ -183,23 +277,25 @@ async def create_tenant(tenant: Tenant):
 
     # ArgoCD Application
     logging.debug("create_tenant prepare_argo_app")
-    argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
-    argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
-    tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
-    gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
+    if tenant.cloud_provider == "AWS":
+        argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
+        argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
+        tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
+        gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
+    else:
+        config_sync_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/config_sync.yaml").decoded_content.decode('ascii'))
+        config_sync_spec = config_sync_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
+        tenant_repo_obj.create_file("config_sync.yaml", "creating tenant app", config_sync_spec.encode('ascii'))
+        gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-config-sync.yaml")
 
     # Copy the github action LAST.
     tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action", gh_action_file.decoded_content)
 
     # Save tenant info
     logging.debug("create_tenant save_tenant")
-    results = tenants.search(where("email")==tenant.email)
     tenant.tenant_url = tenant.namespace + ".saas-tenant.cloud"
     logging.debug("create_tenant dump_tenant_obj " + str(tenant))
-    if len(results) == 0:
-        tenants.insert(tenant.dict())
-    else:
-        tenant = results[0]
+    tenants.insert(tenant.dict())
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=tenant)
 
 if __name__ == "__main__":
