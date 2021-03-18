@@ -117,7 +117,7 @@ class Tenant(BaseModel):
     name: str
     email: str
     tier: str
-    namespace: str
+    namespace: Optional[str] = None
     cloud_provider: Optional[str] = None
     tenant_url: Optional[str] = None
     created_time: Optional[datetime.datetime] = None
