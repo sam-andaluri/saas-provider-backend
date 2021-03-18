@@ -266,11 +266,12 @@ async def create_tenant(tenant: Tenant, request: Request):
     logging.debug("create_tenant prepare_tenant")
     # Add deployment
     deployment_template = Template(templated_repo_obj.get_contents("/tier/deployment.yaml").decoded_content.decode('ascii'))
+    tier = tenant.tier.lower()
     deployment_spec = deployment_template.substitute(tenantId=tenant.namespace,
-                                                     reqCpu=tier_reqs[tenant.tier]["cpu"],
-                                                     reqMem=tier_reqs[tenant.tier]["mem"],
-                                                     limCpu=tier_limits[tenant.tier]["cpu"],
-                                                     limMem=tier_limits[tenant.tier]["mem"])
+                                                     reqCpu=tier_reqs[tier]["cpu"],
+                                                     reqMem=tier_reqs[tier]["mem"],
+                                                     limCpu=tier_limits[tier]["cpu"],
+                                                     limMem=tier_limits[tier]["mem"])
     tenant_repo_obj.create_file("tier/deployment.yaml", "creating tenant deployment", deployment_spec.encode('ascii'))
 
     # Add service
