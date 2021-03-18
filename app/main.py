@@ -208,10 +208,10 @@ async def get_pong():
     return JSONResponse(status_code=status.HTTP_200_OK, content={"status" : "OK"})
 
 # For testing
-@app.post("/delete/{repo}")
-async def delete_repo(repo):
-    r = github_user.get_repo(repo)
-    r.delete()
+# @app.post("/delete/{repo}")
+# async def delete_repo(repo):
+#     r = github_user.get_repo(repo)
+#     r.delete()
 
 # API for creating a tenant
 @app.post("/tenant")
