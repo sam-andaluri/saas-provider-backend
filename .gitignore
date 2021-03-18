@@ -3,4 +3,7 @@ venv/
 .DS_Store
 .vscode
 settings.json
+tenant-db.json
+app/tenant-db.json
+
 
