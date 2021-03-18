@@ -294,14 +294,14 @@ async def create_tenant(tenant: Tenant, request: Request):
         gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-config-sync.yaml")
 
     # Copy the github action LAST.
-    tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action", gh_action_file.decoded_content)
+    tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action", gh_action_file.decoded_content.decode('ascii'))
 
     # Save tenant info
     logging.debug("create_tenant save_tenant")
     tenant.tenant_url = tenant.namespace + ".saas-tenant.cloud"
     logging.debug("create_tenant dump_tenant_obj " + str(tenant))
     tenants.insert(tenant.dict())
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=tenant)
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content=tenant.json())
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
