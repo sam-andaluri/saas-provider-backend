@@ -281,6 +281,7 @@ async def create_tenant(tenant: Tenant, request: Request):
 
     # ArgoCD Application
     logging.debug("create_tenant prepare_argo_app")
+    gh_action_file = None
     if tenant.cloud_provider == "AWS":
         argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
         argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
