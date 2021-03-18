@@ -216,6 +216,8 @@ async def delete_repo(repo):
 # API for creating a tenant
 @app.post("/tenant")
 async def create_tenant(tenant: Tenant, request: Request):
+    logging.debug(tenant)
+    logging.debug(request)
     # User must have write:tenant scope to create tenants
     if validate_token_and_scopes(request, "write:tenant") == False:
         raise HTTPException(status_code=401, detail="token and scope validation failed. user is not permitted for this action")
