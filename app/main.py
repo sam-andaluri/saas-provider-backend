@@ -26,7 +26,8 @@ app = FastAPI()
 
 origins = [
     "https://saas-provider.us.auth0.com",
-    "https://saas-provider.cloud"
+    "https://saas-provider.cloud",
+    "http://localhost:3000"
 ]
 
 app.add_middleware(

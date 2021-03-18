@@ -5,5 +5,5 @@ venv/
 settings.json
 tenant-db.json
 app/tenant-db.json
-
+app/__pycache__/
 
