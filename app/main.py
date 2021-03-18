@@ -281,20 +281,24 @@ async def create_tenant(tenant: Tenant, request: Request):
 
     # ArgoCD Application
     logging.debug("create_tenant prepare_argo_app")
-    gh_action_file = None
-    if tenant.cloud_provider == "AWS":
-        argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
-        argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
-        tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
-        gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
-    else:
-        config_sync_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/config_sync.yaml").decoded_content.decode('ascii'))
-        config_sync_spec = config_sync_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
-        tenant_repo_obj.create_file("config_sync.yaml", "creating tenant app", config_sync_spec.encode('ascii'))
-        gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-config-sync.yaml")
+    # gh_action_file = None
+    # if tenant.cloud_provider == "AWS":
+    argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
+    argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
+    tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
+    gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
+    tenant_repo_obj.create_file("/.github/workflows/deploy.yaml", "adding github action",
+                                gh_action_file.decoded_content.decode('ascii'))
+    # else:
+    #     config_sync_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/config_sync.yaml").decoded_content.decode('ascii'))
+    #     config_sync_spec = config_sync_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
+    #     tenant_repo_obj.create_file("config_sync.yaml", "creating tenant app", config_sync_spec.encode('ascii'))
+    #     gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-config-sync.yaml")
+    #     tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action",
+    #                                 gh_action_file.decoded_content.decode('ascii'))
 
     # Copy the github action LAST.
-    tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action", gh_action_file.decoded_content.decode('ascii'))
+
 
     # Save tenant info
     logging.debug("create_tenant save_tenant")
