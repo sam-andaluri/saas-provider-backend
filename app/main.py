@@ -287,7 +287,7 @@ async def create_tenant(tenant: Tenant, request: Request):
     argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
     tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
     gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
-    tenant_repo_obj.create_file("/.github/workflows/deploy.yaml", "adding github action",
+    tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action",
                                 gh_action_file.decoded_content.decode('ascii'))
     # else:
     #     config_sync_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/config_sync.yaml").decoded_content.decode('ascii'))
