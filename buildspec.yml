@@ -14,7 +14,7 @@ phases:
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - echo Logging in to Docker Hub
       - docker login -u $docker_user -p $docker_password
-      - export TAG=`git log -1 --pretty=%h`
+      - export TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
       - echo Git commit hash $TAG will be used as image tag
       - echo Logging in to Amazon EKS...
       - aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME
