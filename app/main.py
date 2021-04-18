@@ -21,15 +21,22 @@ from nacl.public import PublicKey
 from pydantic import BaseModel
 from tinydb import TinyDB, where
 
-# API
+# Logging
+logging.basicConfig(stream=stdout,
+                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                    level=logging.DEBUG)
+
+# Initialize FastAPI
 app = FastAPI()
 
+# Define origins for API
 origins = [
     "https://saas-provider.us.auth0.com",
     "https://saas-provider.cloud",
     "http://localhost:3000"
 ]
 
+# Enabled CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -38,31 +45,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth0
+# Auth0 API security
 AUTH0_DOMAIN = 'saas-provider.us.auth0.com'
 API_AUDIENCE = "https://tenant-api.saas-provider.cloud/"
 ALGORITHMS = ["RS256"]
 
-# Get token
+# Get Auth0 token
 def get_token_auth_header(request):
-
     auth = request.headers.get("Authorization", None)
     if not auth:
         raise HTTPException(status_code=401, detail="Authorization header is expected")
-
     parts = auth.split()
-
     if parts[0].lower() != "bearer":
         raise HTTPException(status_code=401, detail="Authorization header must start with Bearer")
     elif len(parts) == 1:
         raise HTTPException(status_code=401, detail="invalid_header. Token not found")
     elif len(parts) > 2:
         raise HTTPException(status_code=401, detail="Authorization header must be bearer token")
-
     token = parts[1]
     return token
 
-# Validate token
+# Validate Auth0 token and scopes
 def validate_token_and_scopes(request, required_scope):
     isValid = False
     token = get_token_auth_header(request)
@@ -106,11 +109,7 @@ def validate_token_and_scopes(request, required_scope):
             raise HTTPException(status_code=401, detail="Unable to parse authentication")
     else:
         raise HTTPException(status_code=401, detail="Unable to find appropriate key")
-
     return isValid
-
-
-logging.basicConfig(stream=stdout, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 
 # Tenant object received from provider UI
 class Tenant(BaseModel):
@@ -122,8 +121,10 @@ class Tenant(BaseModel):
     tenant_url: Optional[str] = None
     created_time: Optional[datetime.datetime] = None
 
-db = TinyDB('/data/tenant-db.json')
+# Initialize TinyDB
+db = TinyDB('tenant-db.json')
 
+# Create tenants table
 tenants = db.table('tenants')
 
 # Load from kubernetes sealed secrets
@@ -207,11 +208,15 @@ def gh_add_secret(owner, repo, token, secret_name, secret_value):
 async def get_pong():
     return JSONResponse(status_code=status.HTTP_200_OK, content={"status" : "OK"})
 
-# For testing
-# @app.post("/delete/{repo}")
-# async def delete_repo(repo):
-#     r = github_user.get_repo(repo)
-#     r.delete()
+#For testing
+@app.post("/delete/{repo}")
+async def delete_repo(repo):
+    if "saas-tenant" in repo:
+        r = github_user.get_repo(repo)
+        r.delete()
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"status" : "OK"})
+    else:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND)
 
 # API for creating a tenant
 @app.post("/tenant")
@@ -230,7 +235,7 @@ async def create_tenant(tenant: Tenant, request: Request):
     # TODO Add GCP support
     logging.debug("create_tenant enter " + str(tenant))
     if tenant.namespace == None:
-        tenant.namespace = pydng.generate_name()
+        tenant.namespace = pydng.generate_name().replace("_", "-")
     if tenant.created_time == None:
         tenant.created_time = str(datetime.datetime.now())
     if tenant.cloud_provider == None:
@@ -281,24 +286,23 @@ async def create_tenant(tenant: Tenant, request: Request):
 
     # ArgoCD Application
     logging.debug("create_tenant prepare_argo_app")
-    # gh_action_file = None
-    # if tenant.cloud_provider == "AWS":
-    argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
-    argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
-    tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
-    gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
-    tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action",
-                                gh_action_file.decoded_content.decode('ascii'))
-    # else:
-    #     config_sync_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/config_sync.yaml").decoded_content.decode('ascii'))
-    #     config_sync_spec = config_sync_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
-    #     tenant_repo_obj.create_file("config_sync.yaml", "creating tenant app", config_sync_spec.encode('ascii'))
-    #     gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-config-sync.yaml")
-    #     tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action",
-    #                                 gh_action_file.decoded_content.decode('ascii'))
+    gh_action_file = None
+    if tenant.cloud_provider == "AWS":
+        argocd_app_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/application.yaml").decoded_content.decode('ascii'))
+        argocd_app_spec = argocd_app_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
+        tenant_repo_obj.create_file("application.yaml", "creating tenant app", argocd_app_spec.encode('ascii'))
+        gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-argocd-app.yaml")
+    else:
+        config_sync_spec_template = Template(templated_repo_obj.get_contents("/tier-customization/config_sync.yaml").decoded_content.decode('ascii'))
+        config_sync_spec = config_sync_spec_template.substitute(tenantId=tenant.namespace, repo="saas-tenant-" + tenant.namespace)
+        tenant_repo_obj.create_file("config_sync.yaml", "creating tenant app", config_sync_spec.encode('ascii'))
+        gh_action_file = templated_repo_obj.get_contents("/tier-customization/deploy-config-sync.yaml")
+        tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action",
+                                    gh_action_file.decoded_content.decode('ascii'))
 
     # Copy the github action LAST.
-
+    tenant_repo_obj.create_file(".github/workflows/deploy.yaml", "adding github action",
+                                gh_action_file.decoded_content.decode('ascii'))
 
     # Save tenant info
     logging.debug("create_tenant save_tenant")
