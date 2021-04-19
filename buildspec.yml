@@ -14,7 +14,7 @@ phases:
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
       - echo Logging in to Docker Hub
       - docker login -u $docker_user -p $docker_password
-      - export TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - export TAG=latest
       - echo Git commit hash $TAG will be used as image tag
       - echo Logging in to Amazon EKS...
       - aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME
@@ -30,4 +30,4 @@ phases:
       - echo Pushing the Docker image...
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$TAG
       - echo Setting deployment image to new image
-      - kubectl set image -n saas-provider deployment/saas-provider-backend-deployment saas-provider-backend=$IMAGE_REPO_NAME:$TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$TAG
+      - kubectl -n saas-provider rollout restart deployment/saas-provider-backend-deployment 
