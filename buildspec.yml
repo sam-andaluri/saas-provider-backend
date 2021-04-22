@@ -30,4 +30,4 @@ phases:
       - echo Pushing the Docker image...
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$TAG
       - echo Setting deployment image to new image
-      - kubectl -n saas-provider rollout restart deployment/saas-provider-backend-deployment 
+      - kubectl -n saas-provider-backend rollout restart deployment/saas-provider-backend-deployment 
