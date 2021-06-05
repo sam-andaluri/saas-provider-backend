@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: saas-provider-backend
+---
+apiVersion: configmanagement.gke.io/v1
+kind: ConfigManagement
+metadata:
+  name: config-management
+spec:
+  clusterName: sam-playground-290106-gke
+  git:
+    syncRepo: https://github.com/sam-andaluri/saas-provider-backend
+    syncBranch: main

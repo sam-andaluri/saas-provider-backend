@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: provider-backend-data
+  namespace: saas-provider-backend
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gce-pd
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: saas-provider-backend
+  name: saas-provider-backend-service
+  annotations:
+    kubernetes.io/ingress.class: "gce"

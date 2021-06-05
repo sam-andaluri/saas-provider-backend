@@ -5,14 +5,14 @@ metadata:
 spec:
   destination:
     name: ''
-    namespace: saas-provider
+    namespace: saas-provider-backend
     server: 'https://kubernetes.default.svc'
   source:
-    path: kubernetes
+    path: kubernetes/overlays/aws
     repoURL: 'https://github.com/sam-andaluri/saas-provider-backend'
     targetRevision: HEAD
     directory:
-      recurse: true
+      recurse: false
   project: default
   syncPolicy:
     automated:

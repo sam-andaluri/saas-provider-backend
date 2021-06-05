@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saas-provider-backend-deployment
+  namespace: saas-provider-backend
+spec:
+  template:
+    spec:
+      containers:
+      - image: gcr.io/sam-playground-290106/saas-provider-backend:latest
+        name: saas-provider-backend

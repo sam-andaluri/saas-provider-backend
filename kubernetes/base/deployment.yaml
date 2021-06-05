@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: saas-provider-backend
-        image: 427398298435.dkr.ecr.us-east-2.amazonaws.com/saas-provider-backend:latest
+        image: REPO/IMAGE:TAG
         resources:
           requests:
             memory: "256Mi"
@@ -40,16 +40,6 @@ spec:
             secretKeyRef:
               name: provider-backend
               key: GITHUB_TEMPLATED_REPO
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: provider-backend
-              key: AWS_ACCESS_KEY_ID
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: provider-backend
-              key: AWS_SECRET_ACCESS_KEY
         volumeMounts:
           - name: api-data
             mountPath: /data

@@ -9,16 +9,3 @@ metadata:
    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http, https"
    service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
    external-dns.alpha.kubernetes.io/hostname: tenant-api.saas-provider.cloud.
-spec:
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-      protocol: TCP
-    - name: https
-      port: 443
-      targetPort: 8080
-      protocol: TCP
-  type: LoadBalancer
-  selector:
-    app.kubernetes.io/name: saas-provider-backend

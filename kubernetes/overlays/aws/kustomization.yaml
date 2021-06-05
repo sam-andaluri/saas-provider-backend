@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../../base
+resources:
+- provider-backend-aws-secrets.yaml
+- ebssc.yaml
+- pvc.yaml
+patchesStrategicMerge:
+- deployment.yaml
+- service.yaml

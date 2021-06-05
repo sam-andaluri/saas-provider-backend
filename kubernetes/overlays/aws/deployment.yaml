@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saas-provider-backend-deployment
+  namespace: saas-provider-backend
+spec:
+  template:
+    spec:
+      containers:
+      - image: 427398298435.dkr.ecr.us-east-2.amazonaws.com/saas-provider-backend:latest
+        name: saas-provider-backend
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: provider-backend
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: provider-backend
+              key: AWS_SECRET_ACCESS_KEY
