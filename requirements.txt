@@ -5,7 +5,7 @@ chardet==4.0.0
 click==7.1.2
 Deprecated==1.2.10
 ecdsa==0.14.1
-fastapi==0.63.0
+fastapi==0.65.2
 Flask==1.1.2
 google-auth==1.24.0
 h11==0.12.0
