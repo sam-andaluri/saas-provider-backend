@@ -2,7 +2,7 @@ FROM python:3-slim
 COPY ./app /app
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl gcc g++ libffi-dev
 RUN curl -sSL https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 RUN python get-pip.py
 
