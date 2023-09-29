@@ -19,7 +19,7 @@ pip-tools==5.4.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20
-pydantic==1.7.4
+pydantic==2.4.0
 pydng==1.1.2
 PyGithub==1.54.1
 PyJWT==2.4.0
